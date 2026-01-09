@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASL Sign Language Recognition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 30px;
+        }
+
+        h1, h2 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 { font-size: 2.3em; }
+        h2 { font-size: 1.8em; }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .content { grid-template-columns: 1fr; }
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #1a202c;
+            aspect-ratio: 4 / 3;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+            transform: scaleX(-1);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 15px;
+            transform: scaleX(-1);
+        }
+
+        .result-container {
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .prediction {
+            font-size: 3em;
+            text-align: center;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .confidence {
+            text-align: center;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            background: #6b46c1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        button:hover {
+            background: #805ad5;
+            transform: translateY(-1px);
+        }
+
+        button.stop {
+            background: #e53e3e;
+        }
+
+        button.stop:hover {
+            background: #c53030;
+        }
+
+        .status {
+            text-align: center;
+            color: #4a5568;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .loading div {
+            width: 10px;
+            height: 10px;
+            margin: 0 4px;
+            background: #6b46c1;
+            border-radius: 50%;
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        .loading div:nth-child(2) { animation-delay: 0.1s; }
+        .loading div:nth-child(3) { animation-delay: 0.2s; }
+
+        @keyframes bounce {
+            to { transform: translateY(-8px); }
+        }
+
+        .instructions {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6b46c1;
+        }
+
+        .instructions h3 {
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            color: #2d3748;
+        }
+
+        .instructions ul {
+            list-style: none;
+        }
+
+        .instructions li {
+            color: #4a5568;
+            margin: 4px 0;
+            font-size: 0.95em;
+        }
+
+        .instructions li::before {
+            content: "•";
+            color: #6b46c1;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        .reference-section { margin-top: 10px; }
+
+        .reference-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 16px;
+            padding: 16px 6px;
+        }
+
+        .reference-item {
+            text-align: center;
+        }
+
+        .reference-item img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 2px solid #6b46c1;
+            background: #000;
+        }
+
+        .reference-item p {
+            margin-top: 6px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ASL Sign Language Recognition</h1>
+
+        <div class="instructions">
+            <h3>Instructions</h3>
+            <ul>
+                <li>Position your hand in the centre of the camera view</li>
+                <li>Keep your hand steady and well-lit</li>
+                <li>Make sure your fingers are clearly visible</li>
+                <li>Green lines will appear when your hand is detected</li>
+                <li>Compare with the reference signs shown below</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <img id="overlay" />
+            </div>
+
+            <div class="result-container">
+                <div class="prediction" id="prediction">-</div>
+                <div class="confidence" id="confidence">Confidence: -</div>
+
+                <div class="loading">
+                    <div></div><div></div><div></div>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn">Start Camera</button>
+                    <button id="stopBtn" class="stop" disabled>Stop Camera</button>
+                </div>
+                <p class="status" id="status">Camera is off</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container reference-section">
+        <h2>ASL Sign Reference</h2>
+        <div class="reference-grid">
+            {% for label in reference_labels %}
+            <div class="reference-item">
+                <img src="{{ url_for('reference_image', label=label) }}" alt="{{ label }}">
+                <p>{{ label|upper }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusEl = document.getElementById('status');
+        const predictionEl = document.getElementById('prediction');
+        const confidenceEl = document.getElementById('confidence');
+        const loading = document.querySelector('.loading');
+        let stream = null, predictionTimer = null;
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                statusEl.textContent = 'Camera is active';
+                predictionTimer = setInterval(makePrediction, 1000);
+            } catch (err) {
+                console.error('Camera error:', err);
+                statusEl.textContent = 'Camera access denied';
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+            clearInterval(predictionTimer);
+            predictionTimer = null;
+            predictionEl.textContent = '-';
+            confidenceEl.textContent = 'Confidence: -';
+            overlay.src = '';
+            statusEl.textContent = 'Camera is off';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        async function makePrediction() {
+            if (!video.videoWidth) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            loading.style.display = 'flex';
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const conf = data.confidence || 0;
+                    const THRESHOLD = 0.65;
+
+                    if (conf >= THRESHOLD && data.prediction !== "Unknown" && data.prediction !== "No hand detected") {
+                        predictionEl.textContent = data.prediction.toUpperCase();
+                    } else if (data.prediction === "No hand detected") {
+                        predictionEl.textContent = "No hand";
+                    } else {
+                        predictionEl.textContent = "Uncertain";
+                    }
+
+                    confidenceEl.textContent = `Confidence: ${(conf * 100).toFixed(1)}%`;
+                    overlay.src = `data:image/jpeg;base64,${data.processed_image}`;
+                } else {
+                    predictionEl.textContent = 'No hand detected';
+                    confidenceEl.textContent = 'Show your hand to the camera';
+                    overlay.src = '';
+                }
+            } catch (err) {
+                console.error('Prediction error:', err);
+                statusEl.textContent = 'Backend error – is Flask running?';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+    </script>
+</body>
+</html>
