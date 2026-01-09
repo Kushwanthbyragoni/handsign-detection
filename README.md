@@ -1,4 +1,4 @@
-# Hand Sign Detection
+# GestureGlyph
 
 A deep learning project for recognizing hand signs and gestures, including digits (0-9) and letters (A-Z), with an interactive web interface.
 
